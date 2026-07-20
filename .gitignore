@@ -1,0 +1,5 @@
+# Personal vocab exports
+vocab-*.csv
+*.csv
+
+.DS_Store

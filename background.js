@@ -104,7 +104,7 @@ async function generatePosExamples(word, knownPos) {
 
 // ---- Save a word -----------------------------------------------------------
 
-async function saveWord({ word, sentence, url, title }) {
+async function saveWord({ word, sentence, url, title, group }) {
   word = (word || "").trim();
   if (!word) return { ok: false, error: "Empty selection" };
 
@@ -137,6 +137,7 @@ async function saveWord({ word, sentence, url, title }) {
     sentence: sentence || "",
     url: url || "",
     title: title || "",
+    group: group || "",
     createdAt: Date.now(),
   };
 

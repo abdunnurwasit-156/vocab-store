@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e8e9ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background: fills the full canvas -->
+  <rect x="0" y="0" width="128" height="128" rx="24" fill="url(#bg)"/>
+
+  <!-- Open book: large, centered -->
+  <g>
+    <!-- Back cover -->
+    <path d="M64 34 C48 22 26 20 14 22 L14 98 C26 96 48 98 64 110 C80 98 102 96 114 98 L114 22 C102 20 80 22 64 34 Z"
+          fill="#3730a3" opacity="0.55"/>
+    <!-- Left page -->
+    <path d="M64 38 C50 28 30 26 18 28 L18 93 C30 91 50 93 64 103 Z"
+          fill="url(#page)"/>
+    <!-- Right page -->
+    <path d="M64 38 C78 28 98 26 110 28 L110 93 C98 91 78 93 64 103 Z"
+          fill="url(#page)"/>
+    <!-- Spine shadow -->
+    <path d="M64 38 C60.5 35.5 60.5 100.5 64 103 C67.5 100.5 67.5 35.5 64 38 Z" fill="#c7c9f4"/>
+  </g>
+
+  <!-- Letters: A (English) and অ (Bengali) -->
+  <text x="41" y="78" font-family="Georgia, 'Times New Roman', serif" font-size="38"
+        font-weight="bold" fill="#4f46e5" text-anchor="middle">A</text>
+  <text x="88" y="78" font-family="'Noto Sans Bengali', 'Bangla MN', serif" font-size="36"
+        font-weight="bold" fill="#7c3aed" text-anchor="middle">অ</text>
+
+  <!-- Bookmark ribbon -->
+  <path d="M92 0 L110 0 L110 28 L101 20 L92 28 Z" fill="#fbbf24"/>
+
+  <!-- Sparkle -->
+  <path d="M26 10 l2.6 6 6 2.6 -6 2.6 -2.6 6 -2.6 -6 -6 -2.6 6 -2.6 Z" fill="#ffffff" opacity="0.9"/>
+</svg>

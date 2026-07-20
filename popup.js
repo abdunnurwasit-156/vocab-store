@@ -37,8 +37,11 @@ let modalResolve = null;
 function confirmModal(html, confirmLabel = "Delete") {
   modalTextEl.innerHTML = html;
   modalConfirmEl.textContent = confirmLabel;
+  const isNotice = confirmLabel === "OK";
+  modalCancelEl.hidden = isNotice;
+  modalConfirmEl.classList.toggle("btn-danger", !isNotice);
   overlayEl.hidden = false;
-  modalCancelEl.focus();
+  (isNotice ? modalConfirmEl : modalCancelEl).focus();
   return new Promise((resolve) => {
     modalResolve = resolve;
   });
@@ -384,6 +387,217 @@ listEl.addEventListener("change", async (e) => {
 
 searchEl.addEventListener("input", render);
 
+// ---- CSV export / import ---------------------------------------------------
+
+const CSV_COLUMNS = [
+  "word",
+  "meaning",
+  "pos",
+  "definition",
+  "group",
+  "sentence",
+  "url",
+  "title",
+  "examples",
+  "posExamples",
+  "createdAt",
+];
+
+function csvEscape(v) {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCsv() {
+  const rows = [CSV_COLUMNS.join(",")];
+  for (const w of allWords) {
+    rows.push(CSV_COLUMNS.map((c) => csvEscape(w[c])).join(","));
+  }
+  const blob = new Blob(["﻿" + rows.join("\r\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "vocab-" + new Date().toISOString().slice(0, 10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Minimal RFC-4180 CSV parser (handles quoted fields with commas/newlines).
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+  text = text.replace(/^﻿/, "");
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      row.push(field);
+      field = "";
+      if (row.length > 1 || row[0] !== "") rows.push(row);
+      row = [];
+    } else {
+      field += ch;
+    }
+  }
+  row.push(field);
+  if (row.length > 1 || row[0] !== "") rows.push(row);
+  return rows;
+}
+
+async function importCsv(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return { added: 0, skipped: 0 };
+
+  const header = rows[0].map((h) => h.trim());
+  const existing = new Set(allWords.map((w) => w.word.toLowerCase()));
+  let added = 0;
+  let skipped = 0;
+
+  for (const cells of rows.slice(1)) {
+    const rec = {};
+    header.forEach((h, i) => (rec[h] = cells[i] !== undefined ? cells[i] : ""));
+    const word = (rec.word || "").trim();
+    if (!word || existing.has(word.toLowerCase())) {
+      skipped++;
+      continue;
+    }
+    existing.add(word.toLowerCase());
+    if (rec.group && !groups.includes(rec.group)) groups.push(rec.group);
+    allWords.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      word,
+      meaning: rec.meaning || "",
+      pos: rec.pos || "",
+      definition: rec.definition || "",
+      group: rec.group || "",
+      sentence: rec.sentence || "",
+      url: rec.url || "",
+      title: rec.title || "",
+      examples: rec.examples || null,
+      posExamples: rec.posExamples || null,
+      createdAt: Number(rec.createdAt) || Date.now(),
+    });
+    added++;
+  }
+
+  await saveGroups();
+  await saveWords();
+  return { added, skipped };
+}
+
+// ---- Settings dropdown -----------------------------------------------------
+
+const settingsBtn = document.getElementById("settings-btn");
+const settingsMenu = document.getElementById("settings-menu");
+
+settingsBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  settingsMenu.hidden = !settingsMenu.hidden;
+});
+
+document.addEventListener("click", (e) => {
+  if (!settingsMenu.hidden && !settingsMenu.contains(e.target)) {
+    settingsMenu.hidden = true;
+  }
+});
+
+document.getElementById("export-btn").addEventListener("click", () => {
+  settingsMenu.hidden = true;
+  exportCsv();
+});
+
+const importFileEl = document.getElementById("import-file");
+document.getElementById("import-btn").addEventListener("click", () => {
+  settingsMenu.hidden = true;
+  importFileEl.click();
+});
+
+importFileEl.addEventListener("change", async () => {
+  const file = importFileEl.files[0];
+  importFileEl.value = "";
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const { added, skipped } = await importCsv(text);
+    render();
+    await confirmModal(
+      `Import complete: <b>${added}</b> added, ${skipped} skipped (duplicates/empty).`,
+      "OK"
+    );
+  } catch (e) {
+    await confirmModal("Import failed: " + escapeHtml(e.message || String(e)), "OK");
+  }
+});
+
+// ---- Manually add a word ---------------------------------------------------
+
+const addInputEl = document.getElementById("add-input");
+const addBtnEl = document.getElementById("add-btn");
+
+async function addTypedWord() {
+  const word = addInputEl.value.trim();
+  if (!word) return;
+
+  addBtnEl.disabled = true;
+  addBtnEl.textContent = "…";
+
+  const res = await send({
+    type: "SAVE_WORD",
+    payload: {
+      word,
+      sentence: "",
+      url: "",
+      title: "",
+      // Save straight into the group tab you're currently viewing.
+      group: activeGroup !== "__all__" ? activeGroup : "",
+    },
+  });
+
+  addBtnEl.disabled = false;
+  addBtnEl.textContent = "Add";
+
+  if (res && res.ok) {
+    addInputEl.value = "";
+    if (res.duplicate) {
+      await confirmModal(
+        `<b>${escapeHtml(word)}</b> is already in your vocab.`,
+        "OK"
+      );
+    }
+    // List refreshes via the storage listener.
+  } else {
+    await confirmModal(
+      "Could not add the word: " + escapeHtml((res && res.error) || "unknown error"),
+      "OK"
+    );
+  }
+  addInputEl.focus();
+}
+
+addBtnEl.addEventListener("click", addTypedWord);
+addInputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") addTypedWord();
+});
+
 // ---- Flashcard practice mode ----------------------------------------------
 
 const practiceEl = document.getElementById("practice");
@@ -397,6 +611,7 @@ const progressFill = document.getElementById("progress-fill");
 const listViewEls = [
   document.getElementById("list"),
   document.querySelector(".col-headers"),
+  document.getElementById("add-row"),
   emptyEl,
 ];
 

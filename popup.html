@@ -9,12 +9,25 @@
       <div class="top-row">
         <h1>My Vocab</h1>
         <button id="practice-btn" class="practice-btn" title="Practice flashcards">🎴 Practice</button>
+        <div class="settings-wrap">
+          <button id="settings-btn" class="practice-btn icon-btn" title="Settings">⚙</button>
+          <div id="settings-menu" hidden>
+            <button id="export-btn">⇩ Export CSV</button>
+            <button id="import-btn">⇧ Import CSV</button>
+          </div>
+        </div>
+        <input id="import-file" type="file" accept=".csv,text/csv" hidden />
         <input id="search" type="search" placeholder="Search words…" />
       </div>
       <div class="tabs" id="tabs">
         <!-- group tabs rendered here -->
       </div>
     </header>
+
+    <div class="add-row" id="add-row">
+      <input id="add-input" type="text" placeholder="Type a word to add…" />
+      <button id="add-btn" class="btn btn-primary">Add</button>
+    </div>
 
     <div class="col-headers">
       <div>Word &amp; Meaning</div>
