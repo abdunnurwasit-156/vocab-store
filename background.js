@@ -143,6 +143,20 @@ async function saveWord({ word, sentence, url, title, group }) {
 
   words.unshift(entry);
   await setWords(words);
+
+  // Auto-generate examples in the background (free API) — don't block the
+  // save. The side panel updates live via the storage listener when done.
+  generateExamples(word)
+    .then(async (examples) => {
+      const ws = await getWords();
+      const e = ws.find((x) => x.id === entry.id);
+      if (e && !e.examples) {
+        e.examples = examples;
+        await setWords(ws);
+      }
+    })
+    .catch(() => {}); // silent — the manual Generate button remains as fallback
+
   return { ok: true, entry };
 }
 
