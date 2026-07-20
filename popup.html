@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <div class="top-row">
+        <h1>My Vocab</h1>
+        <button id="practice-btn" class="practice-btn" title="Practice flashcards">🎴 Practice</button>
+        <input id="search" type="search" placeholder="Search words…" />
+      </div>
+      <div class="tabs" id="tabs">
+        <!-- group tabs rendered here -->
+      </div>
+    </header>
+
+    <div class="col-headers">
+      <div>Word &amp; Meaning</div>
+      <div>Examples</div>
+      <!-- Paused: <div>Usage by type</div> -->
+
+    </div>
+
+    <div id="list"></div>
+    <div id="empty" class="empty" hidden>
+      No words here yet. Select any word on a page and click “＋ Save word”.
+    </div>
+    <div id="practice" hidden>
+      <div class="practice-top">
+        <button id="practice-exit" class="link-light">← Back to list</button>
+        <span id="practice-progress"></span>
+      </div>
+      <div class="progress-bar"><div id="progress-fill"></div></div>
+
+      <div id="flashcard-area">
+        <div id="flashcard" class="flashcard">
+          <div class="flash-face flash-front">
+            <div id="flash-word"></div>
+            <div id="flash-pos"></div>
+            <div class="flash-hint">click to flip</div>
+          </div>
+          <div class="flash-face flash-back">
+            <div id="flash-meaning"></div>
+            <div id="flash-definition"></div>
+            <div id="flash-sentence"></div>
+          </div>
+        </div>
+        <div id="answer-btns" class="answer-btns" hidden>
+          <button id="btn-again" class="btn-answer again">✗ Again</button>
+          <button id="btn-got" class="btn-answer got">✓ Got it</button>
+        </div>
+      </div>
+
+      <div id="practice-done" hidden>
+        <div class="done-emoji">🎉</div>
+        <h2>Session complete!</h2>
+        <p id="done-stats"></p>
+        <div class="done-btns">
+          <button id="practice-again" class="btn btn-primary">Practice again</button>
+          <button id="practice-close" class="btn">Back to list</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-overlay" hidden>
+      <div class="modal">
+        <p id="modal-text">Delete this word?</p>
+        <div class="modal-actions">
+          <button id="modal-cancel" class="btn">Cancel</button>
+          <button id="modal-confirm" class="btn btn-danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
