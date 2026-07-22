@@ -53,34 +53,65 @@ async function fetchDictionary(word) {
   return { pos, definition };
 }
 
-// ---- AI example generation (free keyless endpoint) -------------------------
+// Fallback for phrases/idioms the single-word dictionary API doesn't cover.
+async function fetchDictionaryViaAi(word) {
+  const prompt =
+    'The English word or phrase "' +
+    word +
+    '" was not found in a single-word dictionary, so it is likely a multi-word expression (phrasal verb, idiom, or collocation) or an uncommon term.' +
+    " Reply with EXACTLY two lines and nothing else, in this format:\n" +
+    "pos: <a short label, e.g. \"phrasal verb\", \"idiom\", \"collocation\", or a normal part of speech if it fits one>\n" +
+    "definition: <one short, simple definition, easy vocabulary, under 20 words>";
+  const text = await callGroq(prompt);
+  const posMatch = text.match(/pos:\s*(.+)/i);
+  const defMatch = text.match(/definition:\s*(.+)/i);
+  return {
+    pos: posMatch ? posMatch[1].trim() : "",
+    definition: defMatch ? defMatch[1].trim() : "",
+  };
+}
 
-// Pollinations appends an ad/donation footer after a "---" separator. Strip it.
-function cleanAiText(text) {
-  if (!text) return text;
-  // Cut everything from the first horizontal-rule separator onward.
-  let out = text.split(/\n\s*-{3,}\s*\n?/)[0];
-  // Belt and braces: drop any leftover ad/sponsor lines.
-  out = out
-    .split("\n")
-    .filter(
-      (line) =>
-        !/pollinations|support our mission|\*\*ad\*\*|🌸/i.test(line)
-    )
-    .join("\n");
-  return out.trim();
+// ---- AI example generation (Groq, free tier — requires user's own API key) -
+
+async function getGroqApiKey() {
+  const data = await chrome.storage.local.get("groqApiKey");
+  if (!data.groqApiKey) {
+    throw new Error(
+      "No Groq API key set. Add a free key via the settings menu (⚙ → Groq API Key)."
+    );
+  }
+  return data.groqApiKey;
+}
+
+async function callGroq(prompt, opts) {
+  const apiKey = await getGroqApiKey();
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + apiKey,
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [{ role: "user", content: prompt }],
+      temperature: (opts && opts.temperature) ?? 0.7,
+      ...(opts && opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error("AI request failed (" + res.status + "): " + body.slice(0, 200));
+  }
+  const data = await res.json();
+  return (data.choices && data.choices[0] && data.choices[0].message.content || "").trim();
 }
 
 async function generateExamples(word) {
   const prompt =
-    "Give exactly 3 short, natural example sentences in English that use the word \"" +
+    "Give exactly 3 short, simple example sentences in English that use the word \"" +
     word +
-    "\". Number them 1., 2., 3. Only output the three sentences, nothing else.";
-  const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("AI request failed (" + res.status + ")");
-  const text = await res.text();
-  return cleanAiText(text);
+    "\". Write them for a beginner English learner: use easy, everyday vocabulary and short sentences (under 12 words each), avoiding rare or advanced words. Number them 1., 2., 3. Only output the three sentences, nothing else.";
+  return callGroq(prompt);
 }
 
 // ---- AI usage-by-part-of-speech generation ---------------------------------
@@ -90,16 +121,32 @@ async function generatePosExamples(word, knownPos) {
     ? ' Its known parts of speech are: ' + knownPos + "."
     : "";
   const prompt =
-    'The English word "' +
+    'The English word or phrase "' +
     word +
-    '" may be usable as different parts of speech (noun, verb, adjective, adverb, etc.).' +
+    '" may be usable as different parts of speech (noun, verb, adjective, adverb, etc.), or it may instead be a multi-word expression such as a phrasal verb, idiom, or collocation.' +
     hint +
-    " For EACH part of speech that genuinely applies to this word, output one line in the format: partofspeech: one short natural example sentence using the word that way. One line per part of speech. Do not include parts of speech that do not apply. Output only these lines, nothing else.";
-  const url = "https://text.pollinations.ai/" + encodeURIComponent(prompt);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("AI request failed (" + res.status + ")");
-  const text = await res.text();
-  return cleanAiText(text);
+    " If it fits one or more parts of speech, output one line per part of speech in the format: partofspeech: one short, simple example sentence using it that way. If it is (or also has a sense as) a phrasal verb, idiom, or collocation, output one line per such sense in the format: phrasal verb: example sentence / idiom: example sentence / collocation: example sentence, using whichever label fits. Write for a beginner English learner: easy, everyday vocabulary, under 12 words per sentence, no rare or advanced words. Do not include categories that do not apply. Output only these lines, nothing else.";
+  return callGroq(prompt);
+}
+
+// ---- AI grammar check --------------------------------------------------------
+
+async function checkGrammar(text) {
+  const prompt =
+    'You are a friendly English grammar checker for a language learner. Analyze this sentence:\n"' +
+    text +
+    '"\n\n' +
+    "Reply with ONLY a JSON object (no markdown, no code fences) in exactly this shape:\n" +
+    '{"tokens":[{"text":"word","role":"subject|verb|object|complement|modifier|conjunction|punctuation|other"}],"structure":"state the sentence structure (e.g. Subject + Verb + Object) and the sentence type (simple, compound, complex, or compound-complex; and declarative, interrogative, imperative, or exclamatory), 1 short sentence, easy vocabulary","hasErrors":true|false,"corrected":"the corrected sentence, or the same sentence if no errors","corrections":"a short, simple explanation of what was wrong and fixed, or empty string if no errors"}\n' +
+    "Split the sentence into tokens covering every word and punctuation mark, in order, preserving original words (do not fix spelling in the tokens list, only in \"corrected\"). Tag each token by its grammatical role in the sentence (subject, verb, object, complement, modifier, conjunction, punctuation, other). Keep explanations beginner-friendly.";
+  const raw = await callGroq(prompt, { temperature: 0.3, jsonMode: true });
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    throw new Error("Could not parse AI response");
+  }
+  return parsed;
 }
 
 // ---- Save a word -----------------------------------------------------------
@@ -124,8 +171,10 @@ async function saveWord({ word, sentence, url, title, group }) {
     fetchDictionary(word),
   ]);
   const meaning = tRes.status === "fulfilled" ? tRes.value : "";
-  const dict =
-    dRes.status === "fulfilled" ? dRes.value : { pos: "", definition: "" };
+  let dict = dRes.status === "fulfilled" ? dRes.value : { pos: "", definition: "" };
+  if (dRes.status === "rejected") {
+    dict = await fetchDictionaryViaAi(word).catch(() => ({ pos: "", definition: "" }));
+  }
 
   const entry = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -180,9 +229,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (dRes.status === "fulfilled") {
           entry.pos = dRes.value.pos;
           entry.definition = dRes.value.definition;
+        } else {
+          const aiDict = await fetchDictionaryViaAi(entry.word).catch(() => null);
+          if (aiDict) {
+            entry.pos = aiDict.pos;
+            entry.definition = aiDict.definition;
+          }
         }
         await setWords(words);
         sendResponse({ ok: true, entry });
+      } else if (msg.type === "CHECK_GRAMMAR") {
+        const result = await checkGrammar(msg.text);
+        sendResponse({ ok: true, result });
       } else if (msg.type === "DELETE_WORD") {
         const words = await getWords();
         await setWords(words.filter((w) => w.id !== msg.id));
@@ -196,27 +254,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   })();
   return true; // keep the channel open for async response
 });
-
-// ---- One-time scrub: remove ad footers from already-saved examples ---------
-
-(async () => {
-  try {
-    const words = await getWords();
-    let changed = false;
-    for (const w of words) {
-      const cleaned = w.examples ? cleanAiText(w.examples) : w.examples;
-      const cleanedPos = w.posExamples ? cleanAiText(w.posExamples) : w.posExamples;
-      if (cleaned !== w.examples || cleanedPos !== w.posExamples) {
-        w.examples = cleaned;
-        w.posExamples = cleanedPos;
-        changed = true;
-      }
-    }
-    if (changed) await setWords(words);
-  } catch (e) {
-    // non-fatal
-  }
-})();
 
 // ---- Side panel: clicking the toolbar icon opens it ------------------------
 

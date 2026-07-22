@@ -525,6 +525,18 @@ document.getElementById("export-btn").addEventListener("click", () => {
   exportCsv();
 });
 
+document.getElementById("api-key-btn").addEventListener("click", async () => {
+  settingsMenu.hidden = true;
+  const data = await chrome.storage.local.get("groqApiKey");
+  const current = data.groqApiKey || "";
+  const key = window.prompt(
+    "Enter your free Groq API key (from console.groq.com/keys) to enable AI example generation:",
+    current
+  );
+  if (key === null) return;
+  await chrome.storage.local.set({ groqApiKey: key.trim() });
+});
+
 const importFileEl = document.getElementById("import-file");
 document.getElementById("import-btn").addEventListener("click", () => {
   settingsMenu.hidden = true;
@@ -757,5 +769,112 @@ chrome.storage.onChanged.addListener((changes, area) => {
     render();
   }
 });
+
+// ---- Word / Grammar mode toggle --------------------------------------------
+
+const modeWordBtn = document.getElementById("mode-word-btn");
+const modeGrammarBtn = document.getElementById("mode-grammar-btn");
+const wordViewEl = document.getElementById("word-view");
+const grammarViewEl = document.getElementById("grammar-view");
+
+const practiceBtnEl = document.getElementById("practice-btn");
+
+function setMode(mode) {
+  const isGrammar = mode === "grammar";
+  wordViewEl.hidden = isGrammar;
+  grammarViewEl.hidden = !isGrammar;
+  modeWordBtn.classList.toggle("active", !isGrammar);
+  modeGrammarBtn.classList.toggle("active", isGrammar);
+  // Hide word-mode-only header controls while in grammar mode.
+  practiceBtnEl.hidden = isGrammar;
+  tabsEl.hidden = isGrammar;
+}
+
+modeWordBtn.addEventListener("click", () => setMode("word"));
+modeGrammarBtn.addEventListener("click", () => setMode("grammar"));
+
+// ---- Grammar check ----------------------------------------------------------
+
+const grammarInputEl = document.getElementById("grammar-input");
+const grammarCheckBtnEl = document.getElementById("grammar-check-btn");
+const grammarResultEl = document.getElementById("grammar-result");
+const grammarEmptyEl = document.getElementById("grammar-empty");
+const grammarColoredEl = document.getElementById("grammar-colored");
+const grammarLegendEl = document.getElementById("grammar-legend");
+const grammarStructureEl = document.getElementById("grammar-structure");
+const grammarCorrectionsWrapEl = document.getElementById("grammar-corrections-wrap");
+const grammarCorrectionsEl = document.getElementById("grammar-corrections");
+
+const ROLE_COLORS = {
+  subject: "#2563eb",
+  verb: "#dc2626",
+  object: "#16a34a",
+  complement: "#9333ea",
+  modifier: "#ca8a04",
+  conjunction: "#64748b",
+  punctuation: "#9ca3af",
+  other: "#374151",
+};
+
+function renderGrammarResult(result) {
+  grammarEmptyEl.hidden = true;
+  grammarResultEl.hidden = false;
+
+  const usedRoles = new Set();
+  grammarColoredEl.innerHTML = (result.tokens || [])
+    .map((t) => {
+      const role = (t.role || "other").toLowerCase();
+      const color = ROLE_COLORS[role] || ROLE_COLORS.other;
+      if (role !== "punctuation") usedRoles.add(role);
+      return `<span class="tok" style="color:${color}">${escapeHtml(t.text)}</span>`;
+    })
+    .join(" ");
+
+  grammarLegendEl.innerHTML = [...usedRoles]
+    .map(
+      (role) =>
+        `<span class="legend-item"><span class="swatch" style="background:${
+          ROLE_COLORS[role] || ROLE_COLORS.other
+        }"></span>${escapeHtml(role)}</span>`
+    )
+    .join("");
+
+  grammarStructureEl.textContent = result.structure || "";
+
+  if (result.hasErrors) {
+    grammarCorrectionsWrapEl.hidden = false;
+    grammarCorrectionsEl.innerHTML =
+      `<div><b>Corrected:</b> ${escapeHtml(result.corrected || "")}</div>` +
+      (result.corrections
+        ? `<div style="margin-top:6px">${escapeHtml(result.corrections)}</div>`
+        : "");
+  } else {
+    grammarCorrectionsWrapEl.hidden = true;
+  }
+}
+
+async function runGrammarCheck() {
+  const text = grammarInputEl.value.trim();
+  if (!text) return;
+
+  grammarCheckBtnEl.disabled = true;
+  grammarCheckBtnEl.textContent = "Checking…";
+
+  const res = await send({ type: "CHECK_GRAMMAR", text });
+
+  grammarCheckBtnEl.disabled = false;
+  grammarCheckBtnEl.textContent = "Check grammar";
+
+  if (res && res.ok) {
+    renderGrammarResult(res.result);
+  } else {
+    grammarEmptyEl.hidden = false;
+    grammarResultEl.hidden = true;
+    grammarEmptyEl.textContent =
+      "Could not check grammar: " + ((res && res.error) || "unknown error");
+  }
+}
+
+grammarCheckBtnEl.addEventListener("click", runGrammarCheck);
 
 load();

@@ -8,12 +8,17 @@
     <header>
       <div class="top-row">
         <h1>My Vocab</h1>
+        <div class="mode-tabs">
+          <button id="mode-word-btn" class="mode-btn active">📖 Word</button>
+          <button id="mode-grammar-btn" class="mode-btn">✍️ Grammar</button>
+        </div>
         <button id="practice-btn" class="practice-btn" title="Practice flashcards">🎴 Practice</button>
         <div class="settings-wrap">
           <button id="settings-btn" class="practice-btn icon-btn" title="Settings">⚙</button>
           <div id="settings-menu" hidden>
             <button id="export-btn">⇩ Export CSV</button>
             <button id="import-btn">⇧ Import CSV</button>
+            <button id="api-key-btn">🔑 Groq API Key</button>
           </div>
         </div>
         <input id="import-file" type="file" accept=".csv,text/csv" hidden />
@@ -24,56 +29,81 @@
       </div>
     </header>
 
-    <div class="add-row" id="add-row">
-      <input id="add-input" type="text" placeholder="Type a word to add…" />
-      <button id="add-btn" class="btn btn-primary">Add</button>
-    </div>
-
-    <div class="col-headers">
-      <div>Word &amp; Meaning</div>
-      <div>Examples</div>
-      <!-- Paused: <div>Usage by type</div> -->
-
-    </div>
-
-    <div id="list"></div>
-    <div id="empty" class="empty" hidden>
-      No words here yet. Select any word on a page and click “＋ Save word”.
-    </div>
-    <div id="practice" hidden>
-      <div class="practice-top">
-        <button id="practice-exit" class="link-light">← Back to list</button>
-        <span id="practice-progress"></span>
-      </div>
-      <div class="progress-bar"><div id="progress-fill"></div></div>
-
-      <div id="flashcard-area">
-        <div id="flashcard" class="flashcard">
-          <div class="flash-face flash-front">
-            <div id="flash-word"></div>
-            <div id="flash-pos"></div>
-            <div class="flash-hint">click to flip</div>
-          </div>
-          <div class="flash-face flash-back">
-            <div id="flash-meaning"></div>
-            <div id="flash-definition"></div>
-            <div id="flash-sentence"></div>
-          </div>
-        </div>
-        <div id="answer-btns" class="answer-btns" hidden>
-          <button id="btn-again" class="btn-answer again">✗ Again</button>
-          <button id="btn-got" class="btn-answer got">✓ Got it</button>
-        </div>
+    <div id="word-view">
+      <div class="add-row" id="add-row">
+        <input id="add-input" type="text" placeholder="Type a word to add…" />
+        <button id="add-btn" class="btn btn-primary">Add</button>
       </div>
 
-      <div id="practice-done" hidden>
-        <div class="done-emoji">🎉</div>
-        <h2>Session complete!</h2>
-        <p id="done-stats"></p>
-        <div class="done-btns">
-          <button id="practice-again" class="btn btn-primary">Practice again</button>
-          <button id="practice-close" class="btn">Back to list</button>
+      <div class="col-headers">
+        <div>Word &amp; Meaning</div>
+        <div>Examples</div>
+        <!-- Paused: <div>Usage by type</div> -->
+
+      </div>
+
+      <div id="list"></div>
+      <div id="empty" class="empty" hidden>
+        No words here yet. Select any word on a page and click “＋ Save word”.
+      </div>
+      <div id="practice" hidden>
+        <div class="practice-top">
+          <button id="practice-exit" class="link-light">← Back to list</button>
+          <span id="practice-progress"></span>
         </div>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+
+        <div id="flashcard-area">
+          <div id="flashcard" class="flashcard">
+            <div class="flash-face flash-front">
+              <div id="flash-word"></div>
+              <div id="flash-pos"></div>
+              <div class="flash-hint">click to flip</div>
+            </div>
+            <div class="flash-face flash-back">
+              <div id="flash-meaning"></div>
+              <div id="flash-definition"></div>
+              <div id="flash-sentence"></div>
+            </div>
+          </div>
+          <div id="answer-btns" class="answer-btns" hidden>
+            <button id="btn-again" class="btn-answer again">✗ Again</button>
+            <button id="btn-got" class="btn-answer got">✓ Got it</button>
+          </div>
+        </div>
+
+        <div id="practice-done" hidden>
+          <div class="done-emoji">🎉</div>
+          <h2>Session complete!</h2>
+          <p id="done-stats"></p>
+          <div class="done-btns">
+            <button id="practice-again" class="btn btn-primary">Practice again</button>
+            <button id="practice-close" class="btn">Back to list</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="grammar-view" hidden>
+      <div class="grammar-input-row">
+        <textarea id="grammar-input" placeholder="Type or paste a sentence to check…" rows="3"></textarea>
+        <button id="grammar-check-btn" class="btn btn-primary">Check grammar</button>
+      </div>
+      <div id="grammar-result" hidden>
+        <div class="grammar-section-label">Highlighted by grammatical role</div>
+        <div id="grammar-colored" class="grammar-colored"></div>
+        <div id="grammar-legend" class="grammar-legend"></div>
+
+        <div class="grammar-section-label">Sentence structure</div>
+        <div id="grammar-structure" class="grammar-structure"></div>
+
+        <div id="grammar-corrections-wrap" hidden>
+          <div class="grammar-section-label">Corrections</div>
+          <div id="grammar-corrections" class="grammar-corrections"></div>
+        </div>
+      </div>
+      <div id="grammar-empty" class="empty">
+        Type a sentence above and click “Check grammar”.
       </div>
     </div>
 

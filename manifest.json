@@ -6,7 +6,7 @@
   "permissions": ["storage", "contextMenus", "sidePanel"],
   "host_permissions": [
     "https://translate.googleapis.com/*",
-    "https://text.pollinations.ai/*",
+    "https://api.groq.com/*",
     "https://api.dictionaryapi.dev/*"
   ],
   "background": {

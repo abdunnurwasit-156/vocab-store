@@ -655,6 +655,119 @@ button.link:disabled {
   font-size: 13px;
 }
 
+/* ---- Word / Grammar mode tabs ---- */
+
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.mode-btn {
+  border: none;
+  background: transparent;
+  color: #e0e7ff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: #fff;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+/* ---- Grammar check view ---- */
+
+#grammar-view {
+  padding: 14px;
+}
+
+.grammar-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+#grammar-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font: 14px/1.4 inherit;
+  resize: vertical;
+}
+
+.grammar-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 14px 0 6px;
+}
+
+.grammar-colored {
+  font-size: 16px;
+  line-height: 1.8;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.grammar-colored .tok {
+  padding: 1px 2px;
+  border-radius: 3px;
+}
+
+.grammar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.grammar-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.grammar-legend .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.grammar-structure {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+
+.grammar-corrections {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px;
+  background: #fef9c3;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+
 /* ---- Narrow side panel: stack the columns ---- */
 
 @media (max-width: 460px) {
